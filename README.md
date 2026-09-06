@@ -1,7 +1,10 @@
 # Minecraft Playerdata to Level
 
-Copy the root tags from a Java Edition `playerdata/<uuid>.dat` file into the
-`Data.Player` compound in `level.dat`.
+Convert server world player data to single player world data with support for modded data such as curios slots.
+
+## AI notice
+
+This project is built with AI and not thoroughly tested but worked for my ATM 10 save game with out any issues (so far)
 
 ## Usage
 
