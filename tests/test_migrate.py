@@ -5,7 +5,7 @@ from pathlib import Path
 
 import nbtlib
 import pytest
-from nbtlib import Compound, File, Int, String
+from nbtlib import Byte, Compound, File, Int, List, String
 
 from minecraft_playerdata_to_level.migrate import (
     MigrationError,
@@ -48,6 +48,46 @@ def nbt_files(tmp_path: Path) -> tuple[Path, Path, Path]:
                         "Player": Compound(
                             {
                                 "OldOnly": String("remove me"),
+                                "Inventory": List[Compound](
+                                    [
+                                        Compound(
+                                            {
+                                                "Slot": Byte(103),
+                                                "id": String("armor:helmet"),
+                                            }
+                                        )
+                                    ]
+                                ),
+                                "neoforge:attachments": Compound(
+                                    {
+                                        "accessories:inventory_holder": Compound(
+                                            {
+                                                "accessories_containers": Compound(
+                                                    {
+                                                        "back": Compound(
+                                                            {
+                                                                "items": List[Compound](
+                                                                    [
+                                                                        Compound(
+                                                                            {
+                                                                                "Slot": Int(
+                                                                                    0
+                                                                                ),
+                                                                                "id": String(
+                                                                                    "backpack:item"
+                                                                                ),
+                                                                            }
+                                                                        )
+                                                                    ]
+                                                                )
+                                                            }
+                                                        )
+                                                    }
+                                                )
+                                            }
+                                        )
+                                    }
+                                ),
                                 "Health": String("old value"),
                             }
                         ),
@@ -71,8 +111,22 @@ def test_migrate_replaces_player_and_preserves_unrelated_tags(
 
     result = read_nbt(output_path)
     player = result["Data"]["Player"]
-    assert set(player) == {"OldOnly", "DataVersion", "Health", "Nested"}
+    assert set(player) == {
+        "OldOnly",
+        "DataVersion",
+        "Health",
+        "Nested",
+        "Inventory",
+        "neoforge:attachments",
+    }
     assert player["OldOnly"] == "remove me"
+    assert player["Inventory"][0]["id"] == "armor:helmet"
+    assert (
+        player["neoforge:attachments"]["accessories:inventory_holder"][
+            "accessories_containers"
+        ]["back"]["items"][0]["id"]
+        == "backpack:item"
+    )
     assert player["Nested"]["Value"] == "from-playerdata"
     assert result["Data"]["LevelName"] == "Test World"
     assert result["Unrelated"] == "preserve me"
@@ -154,3 +208,8 @@ def test_migrates_supplied_modded_examples(tmp_path: Path) -> None:
     assert "Pos" in player
     assert "Dimension" in player
     assert "toolbelt:belt" in player["neoforge:attachments"]
+    curios = player["neoforge:attachments"]["curios:inventory"]["Curios"]
+    back = next(entry for entry in curios if entry["Identifier"] == "back")
+    assert back["StacksHandler"]["Stacks"]["Items"][0]["id"] == (
+        "sophisticatedbackpacks:netherite_backpack"
+    )

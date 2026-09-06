@@ -17,12 +17,55 @@ class MigrationError(Exception):
     """Raised when an input file does not have the expected Minecraft structure."""
 
 
+_SLOT_LIST_KEYS = {"Inventory", "EnderItems", "Items", "items", "cosmetics"}
+
+
+def _merge_named_lists(destination: list, source: list, key: str) -> list:
+    merged = {str(item[key]): deepcopy(item) for item in destination if key in item}
+    unnamed = [deepcopy(item) for item in destination if key not in item]
+    for item in source:
+        if key in item:
+            name = str(item[key])
+            if name in merged and isinstance(merged[name], Compound):
+                merged[name] = _merge_compounds(merged[name], item)
+            else:
+                merged[name] = deepcopy(item)
+        else:
+            unnamed.append(deepcopy(item))
+    return destination.__class__([*merged.values(), *unnamed])
+
+
+def _merge_slot_lists(destination: list, source: list) -> list:
+    merged = {
+        int(item["Slot"]): deepcopy(item) for item in destination if "Slot" in item
+    }
+    unslotted = [deepcopy(item) for item in destination if "Slot" not in item]
+    for item in source:
+        if "Slot" in item:
+            merged[int(item["Slot"])] = deepcopy(item)
+        else:
+            unslotted.append(deepcopy(item))
+    return destination.__class__([*merged.values(), *unslotted])
+
+
 def _merge_compounds(destination: Compound, source: Compound) -> Compound:
     merged = Compound({name: deepcopy(tag) for name, tag in destination.items()})
     for name, source_tag in source.items():
         destination_tag = merged.get(name)
         if isinstance(destination_tag, Compound) and isinstance(source_tag, Compound):
             merged[name] = _merge_compounds(destination_tag, source_tag)
+        elif (
+            name in _SLOT_LIST_KEYS
+            and isinstance(destination_tag, list)
+            and isinstance(source_tag, list)
+        ):
+            merged[name] = _merge_slot_lists(destination_tag, source_tag)
+        elif (
+            name == "Curios"
+            and isinstance(destination_tag, list)
+            and isinstance(source_tag, list)
+        ):
+            merged[name] = _merge_named_lists(destination_tag, source_tag, "Identifier")
         else:
             merged[name] = deepcopy(source_tag)
     return merged

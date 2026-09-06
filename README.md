@@ -32,6 +32,10 @@ for partial modded playerdata files: position, dimension, and backpack data
 that are absent from the source are retained. It does not perform Minecraft
 version conversion or `DataVersion` upgrades.
 
+Inventory slots, accessory item slots, and Curios entries are merged by their
+slot or identifier, so armor and modded slots such as Curios `back` survive
+when the source playerdata does not contain them.
+
 The loader also supports the malformed Apotheosis text-component encoding
 present in the supplied NeoForge 1.21.1 playerdata example. The compatibility
 repair is applied only when the exact known sequence occurs once in the
