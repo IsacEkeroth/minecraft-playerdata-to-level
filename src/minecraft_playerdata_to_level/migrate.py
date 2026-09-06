@@ -17,6 +17,17 @@ class MigrationError(Exception):
     """Raised when an input file does not have the expected Minecraft structure."""
 
 
+def _merge_compounds(destination: Compound, source: Compound) -> Compound:
+    merged = Compound({name: deepcopy(tag) for name, tag in destination.items()})
+    for name, source_tag in source.items():
+        destination_tag = merged.get(name)
+        if isinstance(destination_tag, Compound) and isinstance(source_tag, Compound):
+            merged[name] = _merge_compounds(destination_tag, source_tag)
+        else:
+            merged[name] = deepcopy(source_tag)
+    return merged
+
+
 _NEOFORGE_WITH_MARKER = bytes.fromhex("09 00 04 77 69 74 68 0a 00 00 00 03")
 _NEOFORGE_BAD_SEQUENCE = bytes.fromhex("00 08 00 00 00 08 00 05 63 6f 6c 6f 72")
 _NEOFORGE_FIXED_SEQUENCE = bytes.fromhex("00 08 00 05 63 6f 6c 6f 72")
@@ -123,5 +134,5 @@ def migrate(
     if not isinstance(data.get("Player"), Compound):
         raise MigrationError("level.dat is missing a compound Data.Player tag")
 
-    data["Player"] = Compound({name: deepcopy(tag) for name, tag in source.items()})
+    data["Player"] = _merge_compounds(data["Player"], source)
     _prepare_output(level, output, force)

@@ -25,10 +25,12 @@ always writes gzip-compressed NBT. It creates missing output directories and
 refuses to overwrite an existing output unless `--force` is supplied. Neither
 input file is modified.
 
-This tool copies every root child from the playerdata file into a newly built
-`Data.Player` compound. Existing player children that are absent from the
-playerdata file are removed; unrelated `level.dat` tags are preserved. It does
-not perform Minecraft version conversion or `DataVersion` upgrades.
+This tool recursively merges every root child from the playerdata file into
+`Data.Player`. Source values replace destination values when both exist, while
+destination-only player fields and nested mod data are preserved. This matters
+for partial modded playerdata files: position, dimension, and backpack data
+that are absent from the source are retained. It does not perform Minecraft
+version conversion or `DataVersion` upgrades.
 
 The loader also supports the malformed Apotheosis text-component encoding
 present in the supplied NeoForge 1.21.1 playerdata example. The compatibility

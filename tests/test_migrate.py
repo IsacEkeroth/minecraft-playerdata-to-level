@@ -71,7 +71,8 @@ def test_migrate_replaces_player_and_preserves_unrelated_tags(
 
     result = read_nbt(output_path)
     player = result["Data"]["Player"]
-    assert set(player) == {"DataVersion", "Health", "Nested"}
+    assert set(player) == {"OldOnly", "DataVersion", "Health", "Nested"}
+    assert player["OldOnly"] == "remove me"
     assert player["Nested"]["Value"] == "from-playerdata"
     assert result["Data"]["LevelName"] == "Test World"
     assert result["Unrelated"] == "preserve me"
@@ -148,4 +149,8 @@ def test_migrates_supplied_modded_examples(tmp_path: Path) -> None:
 
     source = _load_compound(playerdata_path, "playerdata")
     result = read_nbt(output_path)
-    assert set(result["Data"]["Player"]) == set(source)
+    player = result["Data"]["Player"]
+    assert set(source).issubset(player)
+    assert "Pos" in player
+    assert "Dimension" in player
+    assert "toolbelt:belt" in player["neoforge:attachments"]
